@@ -376,8 +376,10 @@ class GLMixture:
         post_weights = normalize(post_weights, norm='l1', axis=1)
 
         samples = np.zeros((n_samples, X.shape[1]))
+        indices = np.zeros(n_samples, dtype=int)
         for i in range(n_samples):
             j = np.random.choice(X.shape[0])
             samples[i] = a[np.random.choice(a.shape[0], 
                                            p=post_weights[j])]
-        return w, samples
+            indices[i] = j
+        return indices, samples
