@@ -1,3 +1,4 @@
+from tabnanny import verbose
 import numpy as np
 import scipy.sparse as sparse
 from sklearn.preprocessing import normalize
@@ -113,7 +114,7 @@ def solve_weights_cvx(K, **solver_params):
     obj = cvx.Maximize(cvx.sum(cvx.log(A @ w)))
 
     prob = cvx.Problem(obj, constraints)
-    prob.solve(**solver_params)
+    prob.solve(**solver_params, verbose=False)
 
     return(w.value)
 
