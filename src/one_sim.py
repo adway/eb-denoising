@@ -119,4 +119,4 @@ class OneSimulation:
     estimates['oracle'] = self.get_oracle_estimates()
     estimates['eb'] = self.get_eb_estimates()
     metrics = self.get_similarity_metrics(estimates)
-    return metrics
+    return estimates, metrics

@@ -1,0 +1,13 @@
+{
+  "prior_params":{ 
+    "support": [-3, 3],
+    "probs": [0.5, 0.5],
+    "dfs": [3, 3],
+    "variances": [0.1, 0.1]
+  },
+  "prior_types": ["normal_mixture"],
+  "n_list": [1000],
+  "sigma2_list": [1.0],
+  "n_per_sim": 10,
+  "n_supp": 500
+}
