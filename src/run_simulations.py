@@ -1,7 +1,10 @@
 # entry point script to run simulations
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 import itertools
 import numpy as np
-from one_sim import OneSimulation, mse, mse_regret
+from one_sim import OneSimulation
 import argparse
 import json
 import os
@@ -23,14 +26,23 @@ def run_simulation(prior_type, prior_params, n, sigma2, n_supp, output_path):
     np.savez_compressed(output_path, **results)
 
 def run_batch(batch, prior_params, n_supp, output_dir): # batch is a list of (prior_type, n, sigma2), need this in order to submit onto the cluster more easily
-    os.makedirs(output_dir, exist_ok=True)
-    for i, (prior_type, n, sigma2) in enumerate(batch):
-        output_path = os.path.join(output_dir, f'sim_{i}.npz')
+    # os.makedirs(output_dir, exist_ok=True)
+    fail_log = Path(output_dir) / 'failed_jobs.log'
+    n_ok = 0
+    n_fail = 0
+    for idx, prior_type, n, sigma2 in batch:
+        output_path = os.path.join(output_dir, f'sim_{idx}.npz')
         if os.path.exists(output_path):
             continue
-        run_simulation(prior_type, prior_params, n, sigma2, n_supp, output_path)
+        try:
+            run_simulation(prior_type, prior_params, n, sigma2, n_supp, output_path)
+            n_ok += 1
+        except Exception as e:
+            with open(fail_log, 'a') as f:
+                f.write(f"Failed job {idx}, {prior_type}, n={n}, sigma2={sigma2}. Error: {e}\n")
+            n_fail += 1
 
-    return len(batch)
+    return {"ok": n_ok, "fail": n_fail}
     
 
 def get_grid(prior_types, n_list, sigma2_list, n_per_sim):
@@ -75,19 +87,18 @@ def main():
     grid = get_grid(prior_types, n_list, sigma2_list, n_per_sim)
     os.makedirs(args.output_dir, exist_ok=True)
 
-    indexed_grid = [(i, prior_type, n, sigma2) for i, (prior_type, n, sigma2) in enumerate(grid)]
+    indexed_grid = [(i, prior_type, n, sigma2) for i, (prior_type, n, sigma2)    in enumerate(grid)]
     np.random.shuffle(indexed_grid) # shuffle the grid to better distribute load across jobs
 
     if args.use_slurm:
-        executor = submitit.AutoExecutor(folder="slurm_logs")
-        executor.update_parameters(nodes = 1, mem_gb=16, cpus_per_task=1, time=120)
+        executor = submitit.AutoExecutor(folder="run_logs")
+        executor.update_parameters(nodes = 1, partition="standard", mem_gb=16, cpus_per_task=1, time=120, account="")
         num_jobs = min(args.max_nodes, len(grid)) # number of parallel jobs to run
         batches = list(split_list(indexed_grid, num_jobs)) # split the grid into num_jobs batches
-
         jobs = executor.map_array(
             run_batch,
             batches,
-            itertools.repeat(prior_params),
+            itertools.repeat(prior_params), # one for each batch, but same, because needs iteration.
             itertools.repeat(n_supp),
             itertools.repeat(args.output_dir)
           )
