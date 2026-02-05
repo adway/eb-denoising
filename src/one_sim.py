@@ -31,6 +31,7 @@ def mse(y_hat, y_true):
 
 def mse_regret(y_emp, y_true, y_oracle):
     return mse(y_emp, y_true) - mse(y_oracle, y_true)
+   
 
 class OneSimulation:
   def __init__(self, prior_type, prior_params, n, sigma2, n_supp=150):
@@ -104,9 +105,9 @@ class OneSimulation:
   def get_similarity_metrics(self, estimates):
     o_prior, ob_means, ob_indices, ob_samples = estimates['oracle']
     eb_weights, eb_prior, eb_means, eb_indices, eb_samples = estimates['eb']
-    prior_dist = stats.wasserstein_distance(o_prior.flatten(), eb_prior.flatten(), u_weights=None, v_weights=eb_weights.flatten())
+    prior_dist = stats.energy_distance(o_prior.flatten(), eb_prior.flatten(), u_weights=None, v_weights=eb_weights.flatten()) / np.sqrt(2)
     denoise_regret = mse_regret(eb_means, self.Theta, ob_means)
-    post_dist = stats.wasserstein_distance(ob_samples.flatten(), eb_samples.flatten())
+    post_dist = stats.energy_distance(ob_samples.flatten(), eb_samples.flatten()) / np.sqrt(2)
     
     return {
         'prior_dist': prior_dist,

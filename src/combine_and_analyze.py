@@ -55,30 +55,48 @@ def make_bivariate_density_plots(input_dir, output_dir):
     os.makedirs(output_dir, exist_ok=True)
     
     for (prior_type, n, sigma2), group in df.groupby(['prior_type', 'n', 'sigma2']):
-      plt.figure(figsize=(8, 6))
-      # can you make the plot discretized instead of a smooth kde?
-      sns.kdeplot(
-          x=group['prior_dist'],
-          y=group['post_dist'],
-          fill=True,
-          cmap="Blues",
-          thresh=0,
-          levels=100,
-          alpha=0.7
-      )
-      # Add reference lines
-      max_val = max(group['prior_dist'].max(), group['post_dist'].max())
-      plt.plot([0, max_val], [0, max_val], color='red', linestyle='--')
-      # add labels and title
-      plt.title(f'Bivariate Density Plot\nPrior: {prior_type}, n: {n}, sigma2: {sigma2}')
-      plt.xlabel('Prior Distance')
-      plt.ylabel('Posterior Distance')
-      # add legend for colors
-      # RuntimeError: No mappable was found to use for colorbar creation. First define a mappable such as an image (with imshow) or a contour set (with contourf).
-      plt.colorbar(label='Density')
-      
-      plt.savefig(Path(output_dir) / f'bivariate_density_{prior_type}_n{n}_sigma2{sigma2}.png')
-      plt.close()
+        plt.figure(figsize=(8, 6))
+
+        # Compute 2D histogram
+        H, xedges, yedges = np.histogram2d(
+            group['prior_dist'],
+            group['post_dist'],
+            bins=100,
+            range=[[0, 0.35], [0, 0.35]]
+        )
+
+        # Plot as pixel grid
+        mesh = plt.pcolormesh(
+            xedges,
+            yedges,
+            H.T,                     # transpose is critical
+            cmap="viridis",          # close to your example
+            shading="flat",
+            edgecolors="k",          # draw grid lines
+            linewidth=0.05           # thin grid lines
+        )
+
+        # Colorbar
+        plt.colorbar(mesh, label="Count")
+
+        # Reference line y = x
+        plt.plot([0, 0.35], [0, 0.35], color="red", linestyle="--", linewidth=1)
+
+        # Labels and title
+        plt.xlabel("Prior Distance")
+        plt.ylabel("Posterior Distance")
+        plt.title(f"Bivariate Density Plot\nPrior: {prior_type}, n: {n}, sigma2: {sigma2}")
+
+        # Fix axes
+        plt.xlim(0, 0.35)
+        plt.ylim(0, 0.35)
+
+        plt.savefig(
+            Path(output_dir) / f"bivariate_density_{prior_type}_n{n}_sigma2{sigma2}.png",
+            dpi=300,
+            bbox_inches="tight"
+        )
+        plt.close()
 
 
 if __name__ == "__main__":
