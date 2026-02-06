@@ -98,6 +98,51 @@ def make_bivariate_density_plots(input_dir, output_dir):
         )
         plt.close()
 
+def make_log_log_plots(input_dir, output_dir):
+    all_files = list(Path(input_dir).glob('sim_*.npz'))
+    records = []
+    for file in all_files:
+        data = np.load(file, allow_pickle=True)
+        prior_type = data['prior_type'].item()
+        n = data['n'].item()
+        sigma2 = data['sigma2'].item()
+        metrics = data['metrics'].item()
+        record = {
+            'prior_type': prior_type,
+            'n': n,
+            'sigma2': sigma2,
+            'prior_dist': metrics['prior_dist'],
+            'post_dist': metrics['post_dist']
+        }
+        records.append(record)
+    df = pd.DataFrame(records)
+    os.makedirs(output_dir, exist_ok=True)
+
+    for prior_type, prior_group in df.groupby('prior_type'):
+        for distance_type in ['prior_dist', 'post_dist']:
+            plt.figure(figsize=(8, 6))
+            for sigma2, sigma_group in prior_group.groupby('sigma2'):
+                mean_distances = sigma_group.groupby('n')[distance_type].mean().reset_index()
+                plt.plot(
+                    mean_distances['n'],
+                    mean_distances[distance_type],
+                    marker='o',
+                    label=f'sigma2={sigma2}'
+                )
+            plt.xscale('log')
+            plt.yscale('log')
+            plt.xlabel('n (log scale)')
+            plt.ylabel(f'{distance_type} (log scale)')
+            plt.title(f'Log-Log Plot of {distance_type} vs n\nPrior: {prior_type}')
+            plt.legend()
+            plt.grid(True, which="both", ls="--")
+            plt.savefig(
+                Path(output_dir) / f"log_log_{distance_type}_{prior_type}.png",
+                dpi=300,
+                bbox_inches="tight"
+            )
+            plt.close()
+
 
 if __name__ == "__main__":
     import argparse
@@ -107,4 +152,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     # combine_and_analyze(args.input_dir, args.output_csv)
-    make_bivariate_density_plots(args.input_dir, "plots")
+    # make_bivariate_density_plots(args.input_dir, "plots")
+    make_log_log_plots(args.input_dir, "plots")

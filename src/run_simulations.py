@@ -41,7 +41,7 @@ def run_batch(batch, prior_params, n_supp, output_dir): # batch is a list of (pr
             with open(fail_log, 'a') as f:
                 f.write(f"Failed job {idx}, {prior_type}, n={n}, sigma2={sigma2}. Error: {e}\n")
             n_fail += 1
-
+            
     return {"ok": n_ok, "fail": n_fail}
     
 
