@@ -112,15 +112,17 @@ def make_log_log_plots(input_dir, output_dir):
             'n': n,
             'sigma2': sigma2,
             'prior_dist': metrics['prior_dist'],
-            'post_dist': metrics['post_dist']
+            'post_dist': metrics['post_dist'],
+            'each_post_avg_dist': metrics['each_post_avg_dist']
         }
         records.append(record)
     df = pd.DataFrame(records)
     os.makedirs(output_dir, exist_ok=True)
 
     for prior_type, prior_group in df.groupby('prior_type'):
-        for distance_type in ['prior_dist', 'post_dist']:
+        for distance_type in ['prior_dist', 'post_dist', 'each_post_avg_dist']:
             plt.figure(figsize=(8, 6))
+            plt.ylim([0.10, 0.40])
             for sigma2, sigma_group in prior_group.groupby('sigma2'):
                 mean_distances = sigma_group.groupby('n')[distance_type].mean().reset_index()
                 plt.plot(

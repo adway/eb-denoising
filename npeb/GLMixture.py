@@ -384,3 +384,29 @@ class GLMixture:
                                            p=post_weights[j])]
             indices[i] = j
         return indices, samples
+    
+    def each_posterior_sample(self, X, prec, n_samples=1, row_condition=True):
+        """
+        given:
+           an n x d observation matrix X,
+           an array of precision matrices, whose shape depends
+           on prec_type and homoscedastic
+           n_samples : int, default 1
+               number of posterior samples per observation
+        return:
+           a list of length n, where the i-th entry is an array of 
+           shape (n_samples, d) containing n_samples draws from the 
+           posterior distribution for the i-th observation.
+        """
+        a, w = self.get_params()
+        A = mvn_pdf(X, a, prec, self.prec_type, self.homoscedastic, 
+                row_condition=row_condition)
+        post_weights = (A.multiply(w)).toarray()
+        post_weights = normalize(post_weights, norm='l1', axis=1)
+
+        samples = []
+        for j in range(X.shape[0]):
+            samples.append(a[np.random.choice(a.shape[0], 
+                                           size=n_samples,
+                                           p=post_weights[j])])
+        return samples

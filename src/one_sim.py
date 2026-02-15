@@ -1,6 +1,7 @@
 import importlib
 import numpy as np
 import scipy.stats as stats
+from scipy.linalg import sqrtm, inv
 import npeb
 from npeb.GLMixture import GLMixture
 import itertools
@@ -87,11 +88,12 @@ class OneSimulation:
     prec = np.ones_like(self.Theta) / self.sigma2
     ob_model = GLMixture(prec_type="diagonal")
     ob_model.set_params(atoms=prior, weights=np.ones(self.n_supp)/self.n_supp)
-    ob_means = ob_model.posterior_mean(self.Z, prec)
-    ob_indices, ob_samples = ob_model.posterior_sample(self.Z, prec, n_samples=self.n)
-    return prior, ob_means, ob_indices, ob_samples
+    ob_means = ob_model.posterior_mean(self.Z, prec) # sample posterior means
+    ob_indices, ob_samples = ob_model.posterior_sample(self.Z, prec, n_samples=self.n) # get samples from the mixture posterior
+    # ob_each_samples = ob_model.each_posterior_sample(self.Z, prec, n_samples=self.n) # get samples from the mixture posterior for each observation
+    return prior, ob_means, ob_indices, ob_samples, None
   
-  def get_eb_estimates(self,):
+  def get_eb_estimates(self):
     z_min, z_max = np.min(self.Z), np.max(self.Z)
     grid = np.linspace(z_min, z_max, self.n_supp).reshape(-1, 1)
     prec = np.ones_like(self.Theta) / self.sigma2
@@ -100,19 +102,32 @@ class OneSimulation:
     prior, weights = eb_model.get_params()
     eb_means = eb_model.posterior_mean(self.Z, prec)
     eb_indices, eb_samples = eb_model.posterior_sample(self.Z, prec, n_samples=self.n)
-    return weights, prior, eb_means, eb_indices, eb_samples
+    # eb_each_samples = eb_model.each_posterior_sample(self.Z, prec, n_samples=self.n)
+    # get variance constrained posterior mean estimates
+    c_means = np.mean(eb_means,axis=0)
+    M_hat = (eb_means-c_means).T@(eb_means-c_means)/self.n
+    mu_hat = np.mean(self.Z, axis = 0)
+    A_hat = (self.Z - mu_hat).T@(self.Z - mu_hat)/self.n - self.sigma2*np.eye(self.Z.shape[1])
+    transport_hat = inv(sqrtm(M_hat))@sqrtm(sqrtm(M_hat)@A_hat@sqrtm(M_hat))@inv(sqrtm(M_hat))
+    evcb_means = (eb_means - c_means)@transport_hat + c_means
+
+    return weights, prior, eb_means, eb_indices, eb_samples, evcb_means
   
   def get_similarity_metrics(self, estimates):
-    o_prior, ob_means, ob_indices, ob_samples = estimates['oracle']
-    eb_weights, eb_prior, eb_means, eb_indices, eb_samples = estimates['eb']
+    o_prior, ob_means, ob_indices, ob_samples, _= estimates['oracle']
+    eb_weights, eb_prior, eb_means, eb_indices, eb_samples, evcb_means = estimates['eb']
     prior_dist = stats.energy_distance(o_prior.flatten(), eb_prior.flatten(), u_weights=None, v_weights=eb_weights.flatten()) / np.sqrt(2)
     denoise_regret = mse_regret(eb_means, self.Theta, ob_means)
     post_dist = stats.energy_distance(ob_samples.flatten(), eb_samples.flatten()) / np.sqrt(2)
+    # each_post_avg_dist = np.mean([stats.energy_distance(ob_each_samples[i].flatten(), eb_each_samples[i].flatten()) / np.sqrt(2) for i in range(self.n)])
+    evcb_distance = stats.energy_distance(ob_samples.flatten(), evcb_means.flatten()) / np.sqrt(2)
     
     return {
         'prior_dist': prior_dist,
         'denoise_regret': denoise_regret,
-        'post_dist': post_dist
+        'post_dist': post_dist,
+        'evcb_distance': evcb_distance
+        # 'each_post_avg_dist': each_post_avg_dist
     }
   
   def run_simulation(self):

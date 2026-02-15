@@ -5,9 +5,9 @@
     "dfs": [3, 3],
     "variances": [0.1, 0.1]
   },
-  "prior_types": ["normal_mixture", "t_mixture", "discrete"],
-  "n_list": [1000, 2500, 5000],
-  "sigma2_list": [0.5, 1.0, 2.0],
-  "n_per_sim": 1000,
-  "n_supp": 500
+  "prior_types": ["normal_mixture"],
+  "n_list": [1000],
+  "sigma2_list": [1.0],
+  "n_per_sim": 50,
+  "n_supp": 150
 }
