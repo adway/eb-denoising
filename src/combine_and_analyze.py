@@ -113,16 +113,15 @@ def make_log_log_plots(input_dir, output_dir):
             'sigma2': sigma2,
             'prior_dist': metrics['prior_dist'],
             'post_dist': metrics['post_dist'],
-            'each_post_avg_dist': metrics['each_post_avg_dist']
+            'evcb_distance': metrics['evcb_distance']
         }
         records.append(record)
     df = pd.DataFrame(records)
     os.makedirs(output_dir, exist_ok=True)
 
     for prior_type, prior_group in df.groupby('prior_type'):
-        for distance_type in ['prior_dist', 'post_dist', 'each_post_avg_dist']:
+        for distance_type in ['prior_dist', 'post_dist', 'evcb_distance']:
             plt.figure(figsize=(8, 6))
-            plt.ylim([0.10, 0.40])
             for sigma2, sigma_group in prior_group.groupby('sigma2'):
                 mean_distances = sigma_group.groupby('n')[distance_type].mean().reset_index()
                 plt.plot(
@@ -145,6 +144,23 @@ def make_log_log_plots(input_dir, output_dir):
             )
             plt.close()
 
+    # get slope of lines for each distance as a function of n, for each prior type and sigma2
+    slope_records = []
+    for prior_type, prior_group in df.groupby('prior_type'):
+        for sigma2, sigma_group in prior_group.groupby('sigma2'):
+            for distance_type in ['prior_dist', 'post_dist', 'evcb_distance']:
+                mean_distances = sigma_group.groupby('n')[distance_type].mean().reset_index()
+                log_n = np.log(mean_distances['n'])
+                log_distance = np.log(mean_distances[distance_type])
+                slope, intercept = np.polyfit(log_n, log_distance, 1)
+                slope_records.append({
+                    'prior_type': prior_type,
+                    'sigma2': sigma2,
+                    'distance_type': distance_type,
+                    'slope': slope
+                })
+    slope_df = pd.DataFrame(slope_records)
+    slope_df.to_csv(Path(output_dir) / "log_log_slopes.csv", index=False)
 
 if __name__ == "__main__":
     import argparse
@@ -153,6 +169,6 @@ if __name__ == "__main__":
     parser.add_argument('--output_csv', type=str, required=True, help='Path to output CSV file for summary statistics.')
     args = parser.parse_args()
     
-    # combine_and_analyze(args.input_dir, args.output_csv)
+    combine_and_analyze(args.input_dir, args.output_csv)
     # make_bivariate_density_plots(args.input_dir, "plots")
     make_log_log_plots(args.input_dir, "plots")
