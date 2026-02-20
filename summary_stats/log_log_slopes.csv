@@ -1,0 +1,16 @@
+prior_type,sigma2,distance_type,slope
+discrete,1.0,prior_dist,-0.07036703895551791
+discrete,1.0,post_dist,-0.1546235431954232
+discrete,1.0,evcb_distance,-0.23093671072865482
+discrete,1.0,denoise_regret,-1.1380464864201438
+discrete,1.0,denoise_diff,-0.7514752307094767
+normal_mixture,1.0,prior_dist,-0.05319300379570217
+normal_mixture,1.0,post_dist,-0.07802307490853437
+normal_mixture,1.0,evcb_distance,-0.026059921677854585
+normal_mixture,1.0,denoise_regret,
+normal_mixture,1.0,denoise_diff,-0.40809553097756596
+t_mixture,1.0,prior_dist,-0.06029273963786022
+t_mixture,1.0,post_dist,-0.09914095268586581
+t_mixture,1.0,evcb_distance,-0.025240626362521418
+t_mixture,1.0,denoise_regret,
+t_mixture,1.0,denoise_diff,-0.26930242555696154

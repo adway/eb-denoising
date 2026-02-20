@@ -118,6 +118,7 @@ class OneSimulation:
     eb_weights, eb_prior, eb_means, eb_indices, eb_samples, evcb_means = estimates['eb']
     prior_dist = stats.energy_distance(o_prior.flatten(), eb_prior.flatten(), u_weights=None, v_weights=eb_weights.flatten()) / np.sqrt(2)
     denoise_regret = mse_regret(eb_means, self.Theta, ob_means)
+    denoise_diff = mse(eb_means, ob_means)
     post_dist = stats.energy_distance(ob_samples.flatten(), eb_samples.flatten()) / np.sqrt(2)
     # each_post_avg_dist = np.mean([stats.energy_distance(ob_each_samples[i].flatten(), eb_each_samples[i].flatten()) / np.sqrt(2) for i in range(self.n)])
     evcb_distance = stats.energy_distance(ob_samples.flatten(), evcb_means.flatten()) / np.sqrt(2)
@@ -125,6 +126,7 @@ class OneSimulation:
     return {
         'prior_dist': prior_dist,
         'denoise_regret': denoise_regret,
+        'denoise_diff': denoise_diff,
         'post_dist': post_dist,
         'evcb_distance': evcb_distance
         # 'each_post_avg_dist': each_post_avg_dist
