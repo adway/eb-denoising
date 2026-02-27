@@ -111,18 +111,19 @@ def make_log_log_plots(input_dir, output_dir):
             'prior_type': prior_type,
             'n': n,
             'sigma2': sigma2,
-            'prior_dist': metrics['prior_dist'],
-            'post_dist': metrics['post_dist'],
-            'evcb_distance': metrics['evcb_distance'],
-            'denoise_regret': metrics['denoise_regret'],
-            'denoise_diff': metrics['denoise_diff']
+            # 'prior_dist': metrics['prior_dist'],
+            # 'post_dist': metrics['post_dist'],
+            # 'evcb_distance': metrics['evcb_distance'],
+            # 'denoise_regret': metrics['denoise_regret'],
+            # 'denoise_diff': metrics['denoise_diff']
+            **metrics
         }
         records.append(record)
     df = pd.DataFrame(records)
     os.makedirs(output_dir, exist_ok=True)
 
     for prior_type, prior_group in df.groupby('prior_type'):
-        for distance_type in ['prior_dist', 'post_dist', 'evcb_distance', 'denoise_regret', 'denoise_diff']:
+        for distance_type in metrics.keys(): # ['prior_dist', 'post_dist', 'evcb_distance', 'denoise_regret', 'denoise_diff']
             plt.figure(figsize=(8, 6))
             for sigma2, sigma_group in prior_group.groupby('sigma2'):
                 mean_distances = sigma_group.groupby('n')[distance_type].mean().reset_index()
@@ -159,7 +160,8 @@ def make_log_log_plots(input_dir, output_dir):
                     'prior_type': prior_type,
                     'sigma2': sigma2,
                     'distance_type': distance_type,
-                    'slope': slope
+                    'slope': slope,
+                    'intercept': intercept
                 })
     slope_df = pd.DataFrame(slope_records)
     slope_df.to_csv(Path(output_dir) / "log_log_slopes.csv", index=False)

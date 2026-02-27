@@ -71,7 +71,7 @@ class OneSimulation:
     if self.prior_type == "discrete":
         support = self.prior_params['support']
         probs = self.prior_params['probs']
-        prior = generate_discrete_theta(support, probs, self.n_supp)
+        prior = np.array(support).reshape(-1, 1)
     elif self.prior_type == "normal_mixture":
         means = self.prior_params['support']
         variances = self.prior_params['variances']
@@ -87,11 +87,12 @@ class OneSimulation:
         raise ValueError("Unsupported prior type")
     prec = np.ones_like(self.Theta) / self.sigma2
     ob_model = GLMixture(prec_type="diagonal")
-    ob_model.set_params(atoms=prior, weights=np.ones(self.n_supp)/self.n_supp)
+    ob_model.set_params(atoms=prior, weights=np.ones(prior.shape[0])/prior.shape[0])
     ob_means = ob_model.posterior_mean(self.Z, prec) # sample posterior means
     ob_indices, ob_samples = ob_model.posterior_sample(self.Z, prec, n_samples=self.n) # get samples from the mixture posterior
-    # ob_each_samples = ob_model.each_posterior_sample(self.Z, prec, n_samples=self.n) # get samples from the mixture posterior for each observation
-    return prior, ob_means, ob_indices, ob_samples, None
+    ob_post_support, ob_post_weights = ob_model.get_average_posterior_weights(self.Z, prec)
+
+    return prior, ob_means, ob_indices, ob_samples, ob_post_support, ob_post_weights
   
   def get_eb_estimates(self):
     z_min, z_max = np.min(self.Z), np.max(self.Z)
@@ -102,7 +103,6 @@ class OneSimulation:
     prior, weights = eb_model.get_params()
     eb_means = eb_model.posterior_mean(self.Z, prec)
     eb_indices, eb_samples = eb_model.posterior_sample(self.Z, prec, n_samples=self.n)
-    # eb_each_samples = eb_model.each_posterior_sample(self.Z, prec, n_samples=self.n)
     # get variance constrained posterior mean estimates
     c_means = np.mean(eb_means,axis=0)
     M_hat = (eb_means-c_means).T@(eb_means-c_means)/self.n
@@ -111,25 +111,41 @@ class OneSimulation:
     transport_hat = inv(sqrtm(M_hat))@sqrtm(sqrtm(M_hat)@A_hat@sqrtm(M_hat))@inv(sqrtm(M_hat))
     evcb_means = (eb_means - c_means)@transport_hat + c_means
 
-    return weights, prior, eb_means, eb_indices, eb_samples, evcb_means
+    eb_post_support, eb_post_weights = eb_model.get_average_posterior_weights(self.Z, prec)
+
+    return weights, prior, eb_means, eb_indices, eb_samples, evcb_means, eb_post_support, eb_post_weights
   
   def get_similarity_metrics(self, estimates):
-    o_prior, ob_means, ob_indices, ob_samples, _= estimates['oracle']
-    eb_weights, eb_prior, eb_means, eb_indices, eb_samples, evcb_means = estimates['eb']
+    o_prior, ob_means, ob_indices, ob_samples, ob_post_support, ob_post_weights = estimates['oracle']
+    eb_weights, eb_prior, eb_means, eb_indices, eb_samples, evcb_means, eb_post_support, eb_post_weights = estimates['eb']
     prior_dist = stats.energy_distance(o_prior.flatten(), eb_prior.flatten(), u_weights=None, v_weights=eb_weights.flatten()) / np.sqrt(2)
     denoise_regret = mse_regret(eb_means, self.Theta, ob_means)
     denoise_diff = mse(eb_means, ob_means)
     post_dist = stats.energy_distance(ob_samples.flatten(), eb_samples.flatten()) / np.sqrt(2)
-    # each_post_avg_dist = np.mean([stats.energy_distance(ob_each_samples[i].flatten(), eb_each_samples[i].flatten()) / np.sqrt(2) for i in range(self.n)])
     evcb_distance = stats.energy_distance(ob_samples.flatten(), evcb_means.flatten()) / np.sqrt(2)
-    
+
+    x = np.asarray(ob_post_support).flatten()
+    y = np.asarray(eb_post_support).flatten()
+    w = np.asarray(ob_post_weights)
+    v = np.asarray(eb_post_weights)
+
+    cross = np.sum(w[:, None] * v[None, :] * np.abs(x[:, None] - y[None, :]))
+    within_x = np.sum(w[:, None] * w[None, :] * np.abs(x[:, None] - x[None, :]))
+    within_y = np.sum(v[:, None] * v[None, :] * np.abs(y[:, None] - y[None, :]))
+
+    post_dist_exact =  cross - 0.5 * within_x - 0.5 * within_y
+    post_dist_exact = np.sqrt(max(post_dist_exact, 0))
+
+    print("Posterior distance (exact):", post_dist_exact)
+    print("Posterior distance (samples):", post_dist)
+
     return {
         'prior_dist': prior_dist,
         'denoise_regret': denoise_regret,
         'denoise_diff': denoise_diff,
         'post_dist': post_dist,
+        'post_dist_exact': post_dist_exact,
         'evcb_distance': evcb_distance
-        # 'each_post_avg_dist': each_post_avg_dist
     }
   
   def run_simulation(self):

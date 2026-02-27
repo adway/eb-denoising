@@ -360,6 +360,17 @@ class GLMixture:
         return(((A.dot(a * w[:, np.newaxis])) 
                / np.ravel(A.dot(w))[:, np.newaxis]))
     
+    def get_average_posterior_weights(self, X, prec, row_condition=True):
+        a, w = self.get_params()
+        A = mvn_pdf(X, a, prec, self.prec_type, self.homoscedastic, 
+                row_condition=row_condition)
+        post_weights = (A.multiply(w)).toarray()
+        post_weights = normalize(post_weights, norm='l1', axis=1)
+
+        avg_post_weights = np.mean(post_weights, axis=0)
+
+        return a, avg_post_weights
+    
     def posterior_sample(self, X, prec, n_samples=1, row_condition=True):
         """
         given:
@@ -375,7 +386,6 @@ class GLMixture:
                 row_condition=row_condition)
         post_weights = (A.multiply(w)).toarray()
         post_weights = normalize(post_weights, norm='l1', axis=1)
-
         samples = np.zeros((n_samples, X.shape[1]))
         indices = np.zeros(n_samples, dtype=int)
         for i in range(n_samples):
