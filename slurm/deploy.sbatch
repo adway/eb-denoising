@@ -2,13 +2,13 @@
 #SBATCH --job-name=spr-train
 #SBATCH --output=logs/%x-%j.out
 #SBATCH --error=logs/%x-%j.err
-
+#sbatch --account=stats_dept1
 #SBATCH --partition=standard
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=4G
 #SBATCH --time=30:00
 
-load_conda11
+module load anaconda/
 
 echo "Activating environment…"
 conda activate eb-denoising

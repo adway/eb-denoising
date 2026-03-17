@@ -136,8 +136,8 @@ class OneSimulation:
     post_dist_exact =  cross - 0.5 * within_x - 0.5 * within_y
     post_dist_exact = np.sqrt(max(post_dist_exact, 0))
 
-    print("Posterior distance (exact):", post_dist_exact)
-    print("Posterior distance (samples):", post_dist)
+    # print("Posterior distance (exact):", post_dist_exact)
+    # print("Posterior distance (samples):", post_dist)
 
     return {
         'prior_dist': prior_dist,

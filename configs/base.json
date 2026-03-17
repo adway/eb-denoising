@@ -6,8 +6,8 @@
     "variances": [0.1]
   },
   "prior_types": ["discrete"],
-  "n_list": [10000],
+  "n_list": [5000, 10000, 15000, 20000],
   "sigma2_list": [1.0],
-  "n_per_sim": 1,
+  "n_per_sim": 1000,
   "n_supp": 150
 }

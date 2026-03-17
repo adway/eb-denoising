@@ -123,7 +123,7 @@ def make_log_log_plots(input_dir, output_dir):
     os.makedirs(output_dir, exist_ok=True)
 
     for prior_type, prior_group in df.groupby('prior_type'):
-        for distance_type in metrics.keys(): # ['prior_dist', 'post_dist', 'evcb_distance', 'denoise_regret', 'denoise_diff']
+        for distance_type in ['prior_dist', 'post_dist', 'post_dist_exact', 'evcb_distance', 'denoise_regret', 'denoise_diff']:
             plt.figure(figsize=(8, 6))
             for sigma2, sigma_group in prior_group.groupby('sigma2'):
                 mean_distances = sigma_group.groupby('n')[distance_type].mean().reset_index()
@@ -151,8 +151,10 @@ def make_log_log_plots(input_dir, output_dir):
     slope_records = []
     for prior_type, prior_group in df.groupby('prior_type'):
         for sigma2, sigma_group in prior_group.groupby('sigma2'):
-            for distance_type in ['prior_dist', 'post_dist', 'evcb_distance', 'denoise_regret', 'denoise_diff']:
+            for distance_type in ['prior_dist', 'post_dist', 'post_dist_exact', 'evcb_distance', 'denoise_regret', 'denoise_diff']:
                 mean_distances = sigma_group.groupby('n')[distance_type].mean().reset_index()
+                # select everything except last n
+                mean_distances = mean_distances[mean_distances['n'] < mean_distances['n'].max()]
                 log_n = np.log(mean_distances['n'])
                 log_distance = np.log(mean_distances[distance_type])
                 slope, intercept = np.polyfit(log_n, log_distance, 1)
